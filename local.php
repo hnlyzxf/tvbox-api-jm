@@ -329,19 +329,17 @@ class TvboxDecoder
 
     private function normalizeIdnUrl($url)
     {
-        $map = array(
-            'www.饭太硬.cc' => 'www.xn--sss604efuw.cc',
-            '饭太硬.cc' => 'xn--sss604efuw.cc',
-            'www.饭太硬.net' => 'www.xn--sss604efuw.net',
-            '饭太硬.net' => 'xn--sss604efuw.net',
-            '肥猫.net' => 'xn--z7x900a.net',
-            'www.肥猫.net' => 'www.xn--z7x900a.net',
-        );
-
-        return preg_replace_callback('~^(https?://)([^/:?#]+)(:\d+)?(.*)$~iu', function ($m) use ($map) {
+        return preg_replace_callback('~^(https?://)([^/:?#]+)(:\d+)?(.*)$~iu', function ($m) {
             $host = $m[2];
-            if (isset($map[$host])) {
-                $host = $map[$host];
+            if (function_exists('idn_to_ascii') && preg_match('/[^\x20-\x7E]/', $host)) {
+                if (defined('INTL_IDNA_VARIANT_UTS46')) {
+                    $asciiHost = idn_to_ascii($host, 0, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $asciiHost = idn_to_ascii($host);
+                }
+                if ($asciiHost !== false) {
+                    $host = $asciiHost;
+                }
             }
             return $m[1] . $host . (isset($m[3]) ? $m[3] : '') . (isset($m[4]) ? $m[4] : '');
         }, $url);
